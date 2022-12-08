@@ -1,12 +1,23 @@
 from pydantic import BaseModel
 
-from app.enums.education_system import BaseGrade
+from app import enums
 
 
-class Grade(BaseModel):
-    id: int
+class GradeBase(BaseModel):
     title: str
-    base_grade: BaseGrade
+    base_grade: enums.BaseGrade
+
+
+class GradeCreate(GradeBase):
+    pass
+
+
+class GradeUpdate(GradeBase):
+    pass
+
+
+class Grade(GradeBase):
+    id: int
     children: list['Grade']
 
     class Config:
