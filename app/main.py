@@ -1,4 +1,3 @@
-import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
@@ -15,10 +14,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(education_system.router, tags=['Education System'])
-app.include_router(lesson.router, tags=['Lesson'])
-
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+
+app.include_router(education_system.router, tags=['Education System'])
+app.include_router(lesson.router_lesson_parent, tags=['Lesson Parent'])
+app.include_router(lesson.router_lesson, tags=['Lesson'])

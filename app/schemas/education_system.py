@@ -16,6 +16,13 @@ class GradeUpdate(GradeBase):
     pass
 
 
+class SimpleGrade(GradeBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class Grade(GradeBase):
     id: int
     children: list['Grade']
