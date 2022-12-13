@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 
 from app import enums
@@ -8,6 +8,13 @@ from app.config.database import Base
 
 if TYPE_CHECKING:
     from app.models.lesson import Lesson
+
+lesson_grade = Table(
+    "association_lesson_grade",
+    Base.metadata,
+    Column("lesson_id", ForeignKey("lesson_lesson.id"), primary_key=True),
+    Column("grade_id", ForeignKey("education_system_grade.id"), primary_key=True),
+)
 
 
 class Grade(Base):
@@ -22,4 +29,4 @@ class Grade(Base):
     children = relationship("Grade", backref=backref("parent", remote_side=[id]))
 
     # Lesson
-    lessons: Mapped[list["Lesson"]] = relationship(back_populates="grade")
+    lessons: Mapped[list["Lesson"]] = relationship(secondary=lesson_grade, back_populates="grades")

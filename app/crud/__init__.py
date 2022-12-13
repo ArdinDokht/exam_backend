@@ -1,2 +1,3 @@
 from .education_system import grade
-from .lesson import lesson_parent, lesson
+from .lesson import lesson
+from .question import question

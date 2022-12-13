@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from app import enums
@@ -16,8 +18,9 @@ class GradeUpdate(GradeBase):
     pass
 
 
-class SimpleGrade(GradeBase):
+class GradeWithParent(GradeBase):
     id: int
+    parent: Optional[GradeBase]
 
     class Config:
         orm_mode = True
