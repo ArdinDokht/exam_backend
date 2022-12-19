@@ -8,6 +8,7 @@ from app.config.database import Base
 
 if TYPE_CHECKING:
     from app.models.lesson import Lesson
+    from app.models.exam import Exam
 
 lesson_grade = Table(
     "association_lesson_grade",
@@ -30,3 +31,6 @@ class Grade(Base):
 
     # Lesson
     lessons: Mapped[list["Lesson"]] = relationship(secondary=lesson_grade, back_populates="grades")
+
+    # Exam
+    exams: Mapped[list["Exam"]] = relationship(back_populates="grade")

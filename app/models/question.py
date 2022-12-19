@@ -8,6 +8,7 @@ from app.config.database import Base
 
 if TYPE_CHECKING:
     from app.models import Lesson, Topic
+    from app.models.exam import ExamQuestion
 
 
 class Question(Base):
@@ -23,3 +24,5 @@ class Question(Base):
 
     topic_id: Mapped[int] = mapped_column(ForeignKey("lesson_topic.id"))
     topic: Mapped["Topic"] = relationship(back_populates="questions")
+
+    exam_questions: Mapped[list["ExamQuestion"]] = relationship(back_populates='question')

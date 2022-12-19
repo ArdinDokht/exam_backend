@@ -9,6 +9,9 @@ class GradeBase(BaseModel):
     title: str
     base_grade: enums.BaseGrade
 
+    class Config:
+        orm_mode = True
+
 
 class GradeCreate(GradeBase):
     pass
@@ -20,10 +23,8 @@ class GradeUpdate(GradeBase):
 
 class GradeWithParent(GradeBase):
     id: int
-    parent: Optional[GradeBase]
 
-    class Config:
-        orm_mode = True
+    parent: Optional[GradeBase]
 
 
 class Grade(GradeBase):

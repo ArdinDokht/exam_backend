@@ -4,8 +4,11 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.config.database import Base
-from app.models.question import Question
-from app.models.education_system import lesson_grade, Grade
+
+if TYPE_CHECKING:
+    from app.models.education_system import Grade
+    from app.models.exam import Exam, ExamLesson, ExamQuestion
+    from app.models.question import Question
 
 
 class Lesson(Base):
@@ -14,11 +17,16 @@ class Lesson(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
 
-    grades: Mapped[list["Grade"]] = relationship(secondary=lesson_grade, back_populates="lessons")
+    grades: Mapped[list["Grade"]] = relationship(secondary="association_lesson_grade", back_populates="lessons")
 
     topics: Mapped[list["Topic"]] = relationship(back_populates="lesson")
 
     questions: Mapped[list["Question"]] = relationship(back_populates="lesson")
+
+    # Exam
+    exam_lessons: Mapped[list["ExamLesson"]] = relationship(back_populates="lesson")
+    # exams: Mapped[list["Exam"]] = relationship(secondary="exam_lesson_exam", back_populates="lessons")
+    # exam_associations: Mapped[list["ExamLesson"]] = relationship(back_populates="lesson")
 
 
 class Topic(Base):
@@ -31,3 +39,5 @@ class Topic(Base):
     lesson: Mapped["Lesson"] = relationship(back_populates="topics")
 
     questions: Mapped[list["Question"]] = relationship(back_populates="topic")
+
+    exam_questions: Mapped[list["ExamQuestion"]] = relationship(back_populates="topic")

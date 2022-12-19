@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.config.base import settings
-from app.routers import education_system, lesson, question
+from app.routers import education_system, lesson, question, exam
 
 app = FastAPI()
 
@@ -23,3 +23,4 @@ async def root():
 app.include_router(education_system.router, prefix="/grades", tags=['Education System'])
 app.include_router(lesson.router, prefix="/lessons", tags=['Lesson'])
 app.include_router(question.router, prefix="/questions", tags=['Question'])
+app.include_router(exam.router, prefix="/exam", tags=['Exam'])

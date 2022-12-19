@@ -11,8 +11,3 @@ router = APIRouter()
 def read_lessons(db: Session = Depends(get_db)):
     response = crud.lesson.get_all(db)
     return response
-
-# @router.post('/lesson/', response_model=schemas.Lesson)
-# def create_lesson(lesson_in: schemas.LessonCreate, db: Session = Depends(get_db)):
-#     response = crud.lesson.create(db, obj_in=lesson_in)
-#     return response
