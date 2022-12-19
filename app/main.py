@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
@@ -24,3 +25,6 @@ app.include_router(education_system.router, prefix="/grades", tags=['Education S
 app.include_router(lesson.router, prefix="/lessons", tags=['Lesson'])
 app.include_router(question.router, prefix="/questions", tags=['Question'])
 app.include_router(exam.router, prefix="/exam", tags=['Exam'])
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=9000)
