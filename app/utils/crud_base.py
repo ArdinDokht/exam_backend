@@ -17,7 +17,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
 
     def get(self, db: Session, id: Any) -> Optional[ModelType]:
-        return db.execute(select(self.model).filter_by(id=id)).scalar_one()
+        return db.scalars(select(self.model).filter_by(id=id).limit(1)).first()
 
     def get_all(self, db: Session, *, skip: int = 0, limit: int = 1000) -> List[ModelType]:
         return db.scalars(select(self.model).offset(skip).limit(limit)).all()

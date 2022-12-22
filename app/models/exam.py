@@ -64,7 +64,7 @@ class ExamQuestion(Base):
     topic_id: Mapped[int] = mapped_column(ForeignKey("lesson_topic.id"))
     topic: Mapped["Topic"] = relationship(back_populates="exam_questions")
 
-    question_id: Mapped[int] = mapped_column(ForeignKey("question_question.id"))
+    question_id: Mapped[int] = mapped_column(ForeignKey("question_question.id"), nullable=True)
     question: Mapped["Question"] = relationship(back_populates="exam_questions")
 
     question_number: Mapped[int] = mapped_column(default=0)
