@@ -2,13 +2,13 @@ import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
 
 from app import enums
 from app.config.database import Base
 
 if TYPE_CHECKING:
-    from app.models import Lesson, Grade, Topic, Question
+    from app.models import Lesson, Grade, Topic, Question, User
 
 
 class Exam(Base):
@@ -27,8 +27,10 @@ class Exam(Base):
 
     # Lesson
     exam_lessons: Mapped[list["ExamLesson"]] = relationship(back_populates="exam")
-    # lessons: Mapped[list["Lesson"]] = relationship(secondary="exam_lesson_exam", back_populates="exams")
-    # lesson_associations: Mapped[list["ExamLesson"]] = relationship(back_populates="exam")
+
+    # ExamUser
+    user_associations: Mapped[list["ExamUser"]] = relationship(back_populates="exam")
+    users: Mapped[list["User"]] = relationship(secondary="exam_user", back_populates="exams")
 
 
 class ExamLesson(Base):
@@ -69,3 +71,16 @@ class ExamQuestion(Base):
 
     question_number: Mapped[int] = mapped_column(default=0)
     score: Mapped[int] = mapped_column(default=0)
+
+
+class ExamUser(Base):
+    __tablename__ = 'exam_user'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_user.id"))
+    exam_id: Mapped[int] = mapped_column(ForeignKey("exam_exam.id"))
+
+    user: Mapped["User"] = relationship(back_populates="exam_associations")
+
+    exam: Mapped["Exam"] = relationship(back_populates="user_associations")
