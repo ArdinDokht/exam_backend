@@ -44,6 +44,7 @@ class School(Base):
     __tablename__ = 'education_system_school'
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
+    token: Mapped[str]
 
     class_rooms: Mapped[list["ClassRoom"]] = relationship(back_populates="school")
 
@@ -52,6 +53,7 @@ class ClassRoom(Base):
     __tablename__ = 'education_system_class_room'
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
+    token: Mapped[str]
 
     school_id = mapped_column(ForeignKey("education_system_school.id"))
     school: Mapped["School"] = relationship(back_populates="class_rooms")

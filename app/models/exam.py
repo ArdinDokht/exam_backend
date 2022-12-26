@@ -2,7 +2,7 @@ import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app import enums
 from app.config.database import Base
@@ -70,7 +70,11 @@ class ExamQuestion(Base):
     question: Mapped["Question"] = relationship(back_populates="exam_questions")
 
     question_number: Mapped[int] = mapped_column(default=0)
-    score: Mapped[int] = mapped_column(default=0)
+
+    score: Mapped[float] = mapped_column(default=0)
+    negative_score: Mapped[float] = mapped_column(default=0)
+
+    exam_users: Mapped[list["ExamUserQuestion"]] = relationship(back_populates="exam_question")
 
 
 class ExamUser(Base):
@@ -84,3 +88,20 @@ class ExamUser(Base):
     user: Mapped["User"] = relationship(back_populates="exam_associations")
 
     exam: Mapped["Exam"] = relationship(back_populates="user_associations")
+
+    questions: Mapped[list["ExamUserQuestion"]] = relationship(back_populates="exam_user")
+
+
+class ExamUserQuestion(Base):
+    __tablename__ = 'exam_user_question'
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    exam_user_id: Mapped[int] = mapped_column(ForeignKey("exam_user.id"))
+    exam_user: Mapped["ExamUser"] = relationship(back_populates="questions")
+
+    exam_question_id: Mapped[int] = mapped_column(ForeignKey("exam_question.id"))
+    exam_question: Mapped["ExamQuestion"] = relationship(back_populates="exam_users")
+
+    answer_image: Mapped[str] = mapped_column(nullable=True)
+
+    score: Mapped[float] = mapped_column(nullable=True)

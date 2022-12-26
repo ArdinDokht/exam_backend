@@ -41,5 +41,6 @@ class Agency(Base):
     __tablename__ = 'user_agency'
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
+    token: Mapped[str]
 
     users: Mapped[list["User"]] = relationship(back_populates="agency")

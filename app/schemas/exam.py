@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -47,9 +48,27 @@ class ExamQuestion(BaseModel):
 class ExamQuestionAdvanceCreate(BaseModel):
     lesson_id: int
     question_text: str
-    answer_text: str
+    answer_text: Optional[str]
     type: enums.TypeQuestion
     topic_id: int
     question_number: int
     score: int
- 
+
+
+class ExamQuestionAdvanceUpdate(BaseModel):
+    lesson_id: int
+    question_text: str
+    answer_text: Optional[str]
+    type: enums.TypeQuestion
+    topic_id: int
+    question_number: int
+    score: int
+
+
+class ExamUserQuestion(BaseModel):
+    exam_question_id: int
+    question_number: int
+    score: Optional[float]
+
+    class Config:
+        orm_mode = True
