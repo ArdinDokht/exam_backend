@@ -1,10 +1,9 @@
 from urllib import request
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, aliased
-from sqlalchemy.testing import db
 
 from app import schemas, crud, enums
 from app.dependencies import get_db
@@ -125,6 +124,16 @@ def create_exam_question_advance(*, db: Session = Depends(get_db), exam_id, exam
     return exam_question
 
 
+# ---------------- ExamUser Routers -------------------- #
+
+@router.get("/{exam_id}/users/", response_model=list[schemas.User], tags=["ExamUser"])
+def get_all_exam_users(*, db: Session = Depends(get_db), exam_id):
+    exam = crud.exam.get(db, id=exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    return exam.users
+
+
 # ---------------- ExamUserQuestion Routers -------------------- #
 
 @router.get("/{exam_id}/users/{user_id}/questions/", response_model=list[schemas.ExamUserQuestion], tags=["ExamUserQuestion"])
@@ -142,9 +151,37 @@ def get_all_question_users(*, db: Session = Depends(get_db), exam_id, user_id):
 
     stmt = select(exam_user_question_cte, exam_questions_cte).join_from(exam_user_question_cte, exam_questions_cte, isouter=True, full=True)
     response = db.execute(stmt).all()
+    list_response = []
     for user_question, exam_question in response:
-        yield {
+        list_response.append({
             'exam_question_id': exam_question.id,
             'question_number': exam_question.question_number,
-            'score': user_question.score if user_question else None
-        }
+            'score': user_question.score if user_question else None,
+            'lesson': exam_question.exam_lesson.lesson
+        })
+    return sorted(list_response, key=lambda x: x['question_number'])
+
+
+@router.post("/{exam_id}/users/{user_id}/questions/", tags=["ExamUserQuestion"])
+def update_questions_user(*, db: Session = Depends(get_db), exam_id, user_id, obj_in: list[schemas.ExamUserQuestionBulkUpdate]):
+    try:
+        exam_user = db.execute(select(ExamUser).filter_by(user_id=user_id, exam_id=exam_id)).scalar_one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="ExamUser not found")
+
+    for item in obj_in:
+        if not item.score is None:
+            try:
+                exam_user_question = db.execute(
+                    select(ExamUserQuestion).filter_by(exam_user=exam_user, exam_question_id=item.exam_question_id)).scalar_one()
+                exam_user_question.score = item.score
+                db.add(exam_user_question)
+                db.commit()
+                # db.refresh(exam_user_question)
+                # return exam_user_question
+            except NoResultFound:
+                db_obj = ExamUserQuestion(exam_user=exam_user, exam_question_id=item.exam_question_id, score=item.score)
+                db.add(db_obj)
+                db.commit()
+
+    return Response('OK')

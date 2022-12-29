@@ -5,6 +5,8 @@ from pydantic import BaseModel
 
 from app import enums, schemas
 from app.schemas.education_system import GradeWithParent
+from app.schemas.lesson import LessonSimple, ExamUserQuestionLesson
+from app.schemas.user import User
 
 
 class ExamBase(BaseModel):
@@ -12,7 +14,7 @@ class ExamBase(BaseModel):
     type: enums.ExamType
     start_datetime: datetime.datetime
     duration: int
-    question_paper_type: enums.QuestionPaperType
+    question_paper_type: Optional[enums.QuestionPaperType]
 
 
 class ExamCreate(ExamBase):
@@ -31,9 +33,18 @@ class Exam(ExamBase):
         orm_mode = True
 
 
+class ExamLesson(BaseModel):
+    id: int
+    exam: Exam
+    lesson: LessonSimple
+
+    class Config:
+        orm_mode = True
+
+
 class ExamQuestion(BaseModel):
     id: int
-    exam_lesson_id: int
+    exam_lesson: ExamLesson
     question_text: str
     answer_text: str
     type: enums.TypeQuestion
@@ -69,6 +80,20 @@ class ExamUserQuestion(BaseModel):
     exam_question_id: int
     question_number: int
     score: Optional[float]
+    lesson: ExamUserQuestionLesson
+
+    class Config:
+        orm_mode = True
+
+
+class ExamUserQuestionBulkUpdate(BaseModel):
+    exam_question_id: int
+    score: Optional[float]
+
+
+class ExamUser(BaseModel):
+    exam: Exam
+    user: User
 
     class Config:
         orm_mode = True

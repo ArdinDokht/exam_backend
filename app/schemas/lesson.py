@@ -57,3 +57,11 @@ class Lesson(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class ExamUserQuestionLesson(BaseModel):
+    id: int
+    title: str
+
+    class Config:
+        orm_mode = True
