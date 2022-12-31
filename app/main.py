@@ -5,24 +5,13 @@ from fastapi import FastAPI, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from starlette.middleware.cors import CORSMiddleware
-
+from fastapi.middleware.cors import CORSMiddleware
 from app.config.base import settings
 from app.dependencies import get_db, get_current_user
 from app.models import User, School, Agency, ClassRoom
 from app.routers import education_system, lesson, question, exam, login, users
 
 app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    # allow_origins=["*"],
-    allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Set-Cookie"]
-)
 
 
 @app.get("/")
@@ -92,3 +81,14 @@ app.include_router(users.router, prefix="/users", tags=['User'])
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=9000)
+
+app.add_middleware(
+    CORSMiddleware,
+    # allow_origins=["*"],
+    allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+    # expose_headers=["Set-Cookie"]
+)

@@ -35,7 +35,7 @@ def login_access_token(*, db: Session = Depends(get_db), form_data: OAuth2Passwo
 
     # Add secure and domain
     response.set_cookie(key="auth_access_token", value=f"Bearer {access_token}", expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60, httponly=True,
-                        secure=True, samesite='none')
+                        secure=True, samesite='none', domain='.chbk.run')
     return {
         "access_token": access_token,
         "token_type": "Bearer",
