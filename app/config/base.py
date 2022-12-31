@@ -5,15 +5,11 @@ from pydantic import BaseSettings, PostgresDsn, AnyHttpUrl, validator
 
 class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: PostgresDsn = 'postgresql://postgres:12345678@127.0.0.1:5432/exam'
-    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = ['http://localhost:3000', 'http://192.168.1.3:3000', 'http://94.184.33.103:3000']
+    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = ['http://localhost:3000', 'https://localhost:3000', 'http://192.168.1.3:3000', 'http://94.184.33.103:3000']
 
-    # @validator("BACKEND_CORS_ORIGINS", pre=True)
-    # def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-    #     if isinstance(v, str) and not v.startswith("["):
-    #         return [i.strip() for i in v.split(",")]
-    #     elif isinstance(v, (list, str)):
-    #         return v
-    #     raise ValueError(v)
+    SECRET_KEY: str = 'a1a726964889dd75b104265a97917e6ee917e54abe572d2948b226b4c9b3f2d2'
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 60 minutes * 24 hours * 8 days = 8 days
+    JWT_ALGORITHM: str = 'HS256'
 
     class Config:
         case_sensitive = True
