@@ -22,7 +22,7 @@ class ExamCreate(ExamBase):
 
 
 class ExamUpdate(ExamBase):
-    pass
+    grade_id: int
 
 
 class Exam(ExamBase):
