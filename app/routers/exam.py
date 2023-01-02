@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session, aliased
 
 from app import schemas, crud, enums
 from app.dependencies import get_db
+from app.enums import ExamStatusType
 from app.models import Exam
-from app.models.exam import ExamQuestion, ExamLesson, ExamUser, ExamUserQuestion
+from app.models.exam import ExamQuestion, ExamLesson, ExamUser, ExamUserQuestion, ExamStatus
 
 router = APIRouter()
 
@@ -18,6 +19,26 @@ router = APIRouter()
 @router.post("/", response_model=schemas.Exam, tags=["Exam"])
 def create_exam(*, db: Session = Depends(get_db), exam_in: schemas.ExamCreate):
     exam = crud.exam.create(db, obj_in=exam_in)
+
+    db.add(ExamStatus(title='نیاز به تمرین بیشتر', type=ExamStatusType.CLASS_ROOM, start_percent=-100, end_percent=0, exam=exam))
+    db.add(ExamStatus(title='قابل قبول', type=ExamStatusType.CLASS_ROOM, start_percent=0, end_percent=50, exam=exam))
+    db.add(ExamStatus(title='متوسط خوب', type=ExamStatusType.CLASS_ROOM, start_percent=50, end_percent=65, exam=exam))
+    db.add(ExamStatus(title='خوب', type=ExamStatusType.CLASS_ROOM, start_percent=65, end_percent=75, exam=exam))
+    db.add(ExamStatus(title='خیلی خوب', type=ExamStatusType.CLASS_ROOM, start_percent=75, end_percent=100, exam=exam))
+
+    db.add(ExamStatus(title='نیاز به تمرین بیشتر', type=ExamStatusType.SCHOOL, start_percent=-100, end_percent=0, exam=exam))
+    db.add(ExamStatus(title='قابل قبول', type=ExamStatusType.SCHOOL, start_percent=0, end_percent=50, exam=exam))
+    db.add(ExamStatus(title='متوسط خوب', type=ExamStatusType.SCHOOL, start_percent=50, end_percent=65, exam=exam))
+    db.add(ExamStatus(title='خوب', type=ExamStatusType.SCHOOL, start_percent=65, end_percent=75, exam=exam))
+    db.add(ExamStatus(title='خیلی خوب', type=ExamStatusType.SCHOOL, start_percent=75, end_percent=100, exam=exam))
+
+    db.add(ExamStatus(title='نیاز به تمرین بیشتر', type=ExamStatusType.TOTAL, start_percent=-100, end_percent=25, exam=exam))
+    db.add(ExamStatus(title='قابل قبول', type=ExamStatusType.TOTAL, start_percent=25, end_percent=50, exam=exam))
+    db.add(ExamStatus(title='خوب', type=ExamStatusType.TOTAL, start_percent=50, end_percent=75, exam=exam))
+    db.add(ExamStatus(title='خیلی خوب', type=ExamStatusType.TOTAL, start_percent=75, end_percent=100, exam=exam))
+
+    db.commit()
+
     return exam
 
 

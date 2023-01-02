@@ -15,3 +15,16 @@ class QuestionPaperType(str, enum.Enum):
 class ExamLessonType(str, enum.Enum):
     GENERAL = 'عمومی'
     SPECIAL = 'اختصاصی'
+
+
+class ExamScoreType(str, enum.Enum):
+    LESSON = 'درس'
+    GENERAL = 'عمومی'
+    SPECIAL = 'اختصاصی'
+    TOTAL = 'کلی'
+
+
+class ExamStatusType(str, enum.Enum):
+    CLASS_ROOM = 'کلاس'
+    SCHOOL = 'مدرسه'
+    TOTAL = 'کل'

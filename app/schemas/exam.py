@@ -50,7 +50,7 @@ class ExamQuestion(BaseModel):
     type: enums.TypeQuestion
     topic: schemas.Topic
     question_number: int
-    score: int
+    score: float
 
     class Config:
         orm_mode = True
@@ -63,7 +63,7 @@ class ExamQuestionAdvanceCreate(BaseModel):
     type: enums.TypeQuestion
     topic_id: int
     question_number: int
-    score: int
+    score: float
 
 
 class ExamQuestionAdvanceUpdate(BaseModel):
@@ -73,7 +73,7 @@ class ExamQuestionAdvanceUpdate(BaseModel):
     type: enums.TypeQuestion
     topic_id: int
     question_number: int
-    score: int
+    score: float
 
 
 class ExamUserQuestion(BaseModel):
