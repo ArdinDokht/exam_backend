@@ -146,13 +146,13 @@ class ExamUserScore(Base):
     score: Mapped[float]
     score_percent: Mapped[float]
 
-    score_ideal: Mapped[float]
-    score_ideal_percent: Mapped[float]
-
-    balance: Mapped[float]
-
     status_id: Mapped[id] = mapped_column(ForeignKey("exam_status.id"))
     status: Mapped["ExamStatus"] = relationship(back_populates="exam_user_scores")
+
+    # score_ideal: Mapped[float]
+    # score_ideal_percent: Mapped[float]
+
+    # balance: Mapped[float]
 
     # correct_count = Mapped[int]
     # incorrect_count = Mapped[int]

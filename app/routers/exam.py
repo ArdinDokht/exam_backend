@@ -1,15 +1,16 @@
+from datetime import datetime
 from urllib import request
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
+from sqlalchemy import select, func, delete
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, aliased
 
 from app import schemas, crud, enums
 from app.dependencies import get_db
-from app.enums import ExamStatusType
-from app.models import Exam
-from app.models.exam import ExamQuestion, ExamLesson, ExamUser, ExamUserQuestion, ExamStatus
+from app.enums import ExamStatusType, ExamScoreType
+from app.models import Exam, User, Grade, Agency, ClassRoom, School, Topic
+from app.models.exam import ExamQuestion, ExamLesson, ExamUser, ExamUserQuestion, ExamStatus, ExamUserScore
 
 router = APIRouter()
 
@@ -206,3 +207,172 @@ def update_questions_user(*, db: Session = Depends(get_db), exam_id, user_id, ob
                 db.commit()
 
     return Response('OK')
+
+
+# ---------------- ExamUserScore Routers -------------------- #
+
+@router.get("/{exam_id}/process/", tags=["Exam"])
+def process_exam(*, db: Session = Depends(get_db), exam_id):
+    exam = crud.exam.get(db, id=exam_id)
+    exam_status = db.scalars(select(ExamStatus).filter_by(type=ExamStatusType.TOTAL, exam=exam)).all()
+
+    for item in exam.exam_lessons:
+
+        stmt_delete = delete(ExamUserScore).where(ExamUserScore.exam_lesson == item)
+        db.execute(stmt_delete)
+
+        stmt_cte = select(ExamUserQuestion.exam_user_id, ExamUserQuestion.exam_question_id, ExamUserQuestion.score.label("user_score"),
+                          ExamQuestion.exam_lesson_id,
+                          ExamQuestion.score.label("question_score")).join(ExamQuestion).cte()
+
+        stmt = select(stmt_cte.c.exam_user_id, stmt_cte.c.exam_lesson_id, func.sum(stmt_cte.c.user_score).label("user_score"),
+                      func.sum(stmt_cte.c.question_score).label("question_score"), func.count().label("user_count_question")).group_by(
+            stmt_cte.c.exam_user_id, stmt_cte.c.exam_lesson_id).where(stmt_cte.c.exam_lesson_id == item.id)
+
+        for data in db.execute(stmt).all():
+            data_dict = {
+                'exam_user_id': data[0],
+                'exam_lesson_id': data[1],
+                'user_score': data[2],
+                'question_score': data[3],
+                'user_count_question': data[4]
+            }
+
+            if data_dict['user_count_question'] == len(item.exam_questions):
+                db_obj = ExamUserScore(
+                    type=ExamScoreType.LESSON,
+                    exam_lesson_id=data_dict['exam_lesson_id'],
+                    exam_user_id=data_dict['exam_user_id'],
+                    score=data_dict['user_score'],
+                    score_percent=(data_dict['user_score'] / data_dict['question_score']) * 100
+                )
+
+                status = [status for status in exam_status if status.start_percent <= db_obj.score_percent < status.end_percent]
+                db_obj.status = status[0] if len(status) > 0 else [status for status in exam_status if db_obj.score_percent == status.end_percent][0]
+
+                db.add(db_obj)
+
+    db.commit()
+    return exam
+
+
+# ---------------- Exam Report Routers -------------------- #
+
+@router.get("/{exam_id}/report/{school_id}", tags=["Exam"])
+def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
+    users = db.scalars(select(User).join(ClassRoom).join(School).where(School.id == school_id)).all()
+
+    for user in users:
+        exam = db.scalars(select(Exam).join(Grade).where(Exam.id == exam_id)).first()
+        exam_status = db.scalars(select(ExamStatus).filter_by(type=ExamStatusType.TOTAL, exam=exam)).all()
+
+        stmt = select(ExamUser.id, ExamUser.exam_id, ExamUser.user_id,
+                      Exam.title, Exam.start_datetime, Exam.duration,
+                      User.first_name, User.last_name, User.username,
+                      School.title.label("school_title"),
+                      Agency.name.label("agency_title"),
+                      # Grade.title, Grade.base_grade,
+                      ClassRoom.title.label("class_room_title")) \
+            .join(Exam) \
+            .join(User) \
+            .join(Agency) \
+            .join(ClassRoom).join(School) \
+            .where(ExamUser.exam_id == exam_id).where(ExamUser.user_id == user.id)
+        if db.execute(stmt).first():
+            exam_user_dict = db.execute(stmt).first()._asdict()
+
+            exam_user_scores = db.scalars(select(ExamUserScore).where(ExamUserScore.exam_user_id == exam_user_dict['id'])).all()
+            for item in exam_user_scores:
+                user_question = db.query(ExamUserQuestion) \
+                    .join(ExamQuestion) \
+                    .join(Topic) \
+                    .order_by(ExamQuestion.question_number) \
+                    .with_entities(ExamUserQuestion.score.label("score_user"),
+                                   ExamQuestion.question_number,
+                                   ExamQuestion.score.label("score_question"),
+                                   Topic.id.label("topic_id"),
+                                   Topic.title.label("topic_title")).where(
+                    ExamUserQuestion.exam_user_id == exam_user_dict['id']) \
+                    .where(ExamQuestion.exam_lesson == item.exam_lesson).all()
+                list_questions_with_status = []
+
+                for q in user_question:
+                    q = q._asdict()
+                    score_q_percent = (q['score_user'] / q['score_question']) * 100
+                    print(q)
+                    q_item = {
+                        'question_number': q['question_number'],
+                        'topic_title': q['topic_title']
+                    }
+                    status = [status for status in exam_status if status.start_percent <= score_q_percent < status.end_percent]
+                    q_item['status'] = status[0].title if len(status) > 0 else \
+                        [status for status in exam_status if score_q_percent == status.end_percent][
+                            0].title
+                    list_questions_with_status.append(q_item)
+
+                # user_question_qrouped = \
+                #     db.query(ExamUserQuestion) \
+                #         .join(ExamQuestion) \
+                #         .join(Topic) \
+                #         .group_by(Topic.title) \
+                #         .with_entities(func.sum(ExamUserQuestion.score),
+                #                        func.sum(ExamQuestion.score),
+                #                        Topic.title.label("topic_title")).where(
+                #         ExamUserQuestion.exam_user_id == exam_user_dict['id']) \
+                #         .where(ExamQuestion.exam_lesson == item.exam_lesson).all()
+
+                user_question_qrouped = \
+                    db.execute(
+                        select(func.sum(ExamUserQuestion.score).label("score_user"),
+                               func.sum(ExamQuestion.score).label("score_question"),
+                               Topic.title.label("topic_title")).select_from(ExamUserQuestion) \
+                            .join(ExamQuestion) \
+                            .join(Topic) \
+                            .group_by(Topic.title) \
+                            .where(
+                            ExamUserQuestion.exam_user_id == exam_user_dict['id']) \
+                            .where(ExamQuestion.exam_lesson == item.exam_lesson)
+                    ).all()
+                list_questions_topic_with_status = []
+
+                for q in user_question_qrouped:
+                    q = q._asdict()
+                    score_q_percent = (q['score_user'] / q['score_question']) * 100
+                    q_item = {
+                        'topic_title': q['topic_title']
+                    }
+                    status = [status for status in exam_status if status.start_percent <= score_q_percent < status.end_percent]
+                    q_item['status'] = status[0].title if len(status) > 0 else \
+                        [status for status in exam_status if score_q_percent == status.end_percent][
+                            0].title
+                    list_questions_topic_with_status.append(q_item)
+
+                yield {
+                    'report_time': datetime.now(),
+                    'exam': {
+                        'title': exam.title,
+                        'start_date_time': exam.start_datetime,
+                        'grade_title': exam.grade.title + ' ' + exam.grade.base_grade.value
+                    },
+                    'user': {
+                        'full_name': exam_user_dict['first_name'] + ' ' + exam_user_dict['last_name'],
+                        'username': exam_user_dict['username'],
+                    },
+                    'school': {
+                        'title': exam_user_dict['school_title']
+                    },
+                    'class_room': {
+                        'title': exam_user_dict['class_room_title']
+                    },
+                    'agency': {
+                        'title': exam_user_dict['agency_title']
+                    },
+                    'lesson': {
+                        'title': item.exam_lesson.lesson.title,
+                        'status': item.status.title,
+                        "status_class_room": "عالی",
+                        "status_school": "عالی",
+                    },
+                    'questions': list_questions_with_status,
+                    'topics': list_questions_topic_with_status
+                }
