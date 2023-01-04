@@ -263,17 +263,28 @@ def process_exam(*, db: Session = Depends(get_db), exam_id):
 @router.get("/{exam_id}/report/{school_id}", tags=["Exam"])
 def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
     users = db.scalars(select(User).join(ClassRoom).join(School).where(School.id == school_id)).all()
+    exam = db.scalars(select(Exam).join(Grade).where(Exam.id == exam_id)).first()
+    exam_status = db.scalars(select(ExamStatus).filter_by(type=ExamStatusType.TOTAL, exam=exam)).all()
+
+    stmt_user_school = select(func.avg(ExamUserScore.score_percent)).join(ExamUser).join(User).join(ClassRoom).where(
+        ClassRoom.school_id == school_id)
+    user_school_avg = db.scalar(stmt_user_school)
+    status_school = [status for status in exam_status if status.start_percent <= user_school_avg < status.end_percent]
+    user_school_status = status_school[0].title if len(status_school) > 0 else \
+        [status_school for status_school in exam_status if user_school_avg == status_school.end_percent][0].title
 
     for user in users:
-        exam = db.scalars(select(Exam).join(Grade).where(Exam.id == exam_id)).first()
-        exam_status = db.scalars(select(ExamStatus).filter_by(type=ExamStatusType.TOTAL, exam=exam)).all()
+        stmt_user_classroom = select(func.avg(ExamUserScore.score_percent)).join(ExamUser).join(User).where(User.classroom_id == user.classroom.id)
+        user_classroom_avg = db.scalar(stmt_user_classroom)
+        status_classroom = [status for status in exam_status if status.start_percent <= user_classroom_avg < status.end_percent]
+        user_classroom_status = status_classroom[0].title if len(status_classroom) > 0 else \
+            [status_classroom for status_classroom in exam_status if user_classroom_avg == status_classroom.end_percent][0].title
 
         stmt = select(ExamUser.id, ExamUser.exam_id, ExamUser.user_id,
                       Exam.title, Exam.start_datetime, Exam.duration,
                       User.first_name, User.last_name, User.username,
                       School.title.label("school_title"),
                       Agency.name.label("agency_title"),
-                      # Grade.title, Grade.base_grade,
                       ClassRoom.title.label("class_room_title")) \
             .join(Exam) \
             .join(User) \
@@ -303,7 +314,6 @@ def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
                     if q['score_user'] > q['score_question']:
                         q['score_user'] = q['score_question']
                     score_q_percent = (q['score_user'] / q['score_question']) * 100
-                    print(q)
                     q_item = {
                         'question_number': q['question_number'],
                         'topic_title': q['topic_title']
@@ -377,8 +387,8 @@ def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
                     'lesson': {
                         'title': item.exam_lesson.lesson.title,
                         'status': item.status.title,
-                        "status_class_room": "عالی",
-                        "status_school": "عالی",
+                        "status_class_room": user_classroom_status,
+                        "status_school": user_school_status,
                     },
                     'questions': list_questions_with_status,
                     'topics': list_questions_topic_with_status
