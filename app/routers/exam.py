@@ -365,6 +365,7 @@ def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
                     list_questions_topic_with_status.append(q_item)
 
                 yield {
+                    'score_id': item.id,
                     'report_time': datetime.now(),
                     'exam': {
                         'title': exam.title,
@@ -393,3 +394,13 @@ def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
                     'questions': list_questions_with_status,
                     'topics': list_questions_topic_with_status
                 }
+
+
+@router.get("/{exam_id}/schools/", tags=["Exam"])
+def get_exam_schools(*, db: Session = Depends(get_db), exam_id):
+    stmt_subquery = select(ExamUser.user_id).join(Exam).join(User).where(Exam.id == exam_id).subquery()
+
+    stmt = select(User).join(ClassRoom).join(School).where(User.id.in_(stmt_subquery))
+
+    aa = db.scalars(select(School).join(ClassRoom).join(User).where(User.id.in_(stmt_subquery)).distinct()).all()
+    return aa
