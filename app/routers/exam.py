@@ -239,6 +239,8 @@ def process_exam(*, db: Session = Depends(get_db), exam_id):
             }
 
             if data_dict['user_count_question'] == len(item.exam_questions):
+                if data_dict['user_score'] > data_dict['question_score']:
+                    data_dict['user_score'] = data_dict['question_score']
                 db_obj = ExamUserScore(
                     type=ExamScoreType.LESSON,
                     exam_lesson_id=data_dict['exam_lesson_id'],
@@ -298,6 +300,8 @@ def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
 
                 for q in user_question:
                     q = q._asdict()
+                    if q['score_user'] > q['score_question']:
+                        q['score_user'] = q['score_question']
                     score_q_percent = (q['score_user'] / q['score_question']) * 100
                     print(q)
                     q_item = {
@@ -337,6 +341,9 @@ def exam_report(*, db: Session = Depends(get_db), exam_id, school_id):
 
                 for q in user_question_qrouped:
                     q = q._asdict()
+                    if q['score_user'] > q['score_question']:
+                        q['score_user'] = q['score_question']
+
                     score_q_percent = (q['score_user'] / q['score_question']) * 100
                     q_item = {
                         'topic_title': q['topic_title']
