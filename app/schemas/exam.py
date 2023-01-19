@@ -42,6 +42,17 @@ class ExamLesson(BaseModel):
         orm_mode = True
 
 
+class ExamLessonSimple(BaseModel):
+    id: int
+    coefficient: int
+    type: enums.ExamLessonType
+    duration: Optional[int]
+    lesson: LessonSimple
+
+    class Config:
+        orm_mode = True
+
+
 class ExamQuestion(BaseModel):
     id: int
     exam_lesson: ExamLesson

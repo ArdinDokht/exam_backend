@@ -19,18 +19,21 @@ class User(Base):
     last_name: Mapped[str]
     username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str]
-    token: Mapped[str]
+    token: Mapped[str] = mapped_column(nullable=True)
+
+    is_staff: Mapped[bool] = mapped_column(default=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     # Grade
-    grade_id: Mapped[int] = mapped_column(ForeignKey("education_system_grade.id"))
+    grade_id: Mapped[int] = mapped_column(ForeignKey("education_system_grade.id"), nullable=True)
     grade: Mapped["Grade"] = relationship(back_populates="users")
 
     # Agency
-    agency_id: Mapped[int] = mapped_column(ForeignKey("user_agency.id"))
+    agency_id: Mapped[int] = mapped_column(ForeignKey("user_agency.id"), nullable=True)
     agency: Mapped["Agency"] = relationship(back_populates="users")
 
     # ClassRoom
-    classroom_id: Mapped[int] = mapped_column(ForeignKey("education_system_class_room.id"))
+    classroom_id: Mapped[int] = mapped_column(ForeignKey("education_system_class_room.id"), nullable=True)
     classroom: Mapped["ClassRoom"] = relationship(back_populates="users")
 
     exam_associations: Mapped[list["ExamUser"]] = relationship(back_populates="user")

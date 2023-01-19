@@ -1,3 +1,4 @@
+import datetime
 from typing import TypeVar, Generic, Any, Optional, List, Union, Dict
 
 from fastapi.encoders import jsonable_encoder
@@ -20,7 +21,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.scalars(select(self.model).filter_by(id=id).limit(1)).first()
 
     def get_all(self, db: Session, *, skip: int = 0, limit: int = 1000) -> List[ModelType]:
-        return db.scalars(select(self.model).offset(skip).limit(limit)).all()
+        return db.scalars(select(self.model).offset(skip).limit(limit).order_by(self.model.id.desc())).all()
 
     def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
         obj_data = jsonable_encoder(obj_in)
@@ -38,6 +39,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             update_data = obj_in.dict(exclude_unset=True)
         for field in obj_data:
             if field in update_data:
+                if isinstance(update_data[field], datetime.datetime):
+                    update_data[field] = update_data[field].replace(tzinfo=None)
                 setattr(db_obj, field, update_data[field])
         db.add(db_obj)
         db.commit()

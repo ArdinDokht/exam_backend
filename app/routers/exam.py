@@ -7,7 +7,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, aliased
 
 from app import schemas, crud, enums
-from app.dependencies import get_db
+from app.dependencies import get_db, get_current_active_staff_user
 from app.enums import ExamStatusType, ExamScoreType
 from app.models import Exam, User, Grade, Agency, ClassRoom, School, Topic
 from app.models.exam import ExamQuestion, ExamLesson, ExamUser, ExamUserQuestion, ExamStatus, ExamUserScore
@@ -18,7 +18,7 @@ router = APIRouter()
 # ---------------- Exam Routers -------------------- #
 
 @router.post("/", response_model=schemas.Exam, tags=["Exam"])
-def create_exam(*, db: Session = Depends(get_db), exam_in: schemas.ExamCreate):
+def create_exam(*, db: Session = Depends(get_db), exam_in: schemas.ExamCreate, current_user: User = Depends(get_current_active_staff_user)):
     exam = crud.exam.create(db, obj_in=exam_in)
 
     db.add(ExamStatus(title='نیاز به تمرین بیشتر', type=ExamStatusType.CLASS_ROOM, start_percent=-100, end_percent=0, exam=exam))
@@ -44,13 +44,13 @@ def create_exam(*, db: Session = Depends(get_db), exam_in: schemas.ExamCreate):
 
 
 @router.get("/", response_model=list[schemas.Exam], tags=["Exam"])
-def get_all_exams(*, db: Session = Depends(get_db)):
+def get_all_exams(*, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_staff_user)):
     exams = crud.exam.get_all(db)
     return exams
 
 
 @router.get("/{exam_id}", response_model=schemas.Exam, tags=["Exam"])
-def get_exam(*, db: Session = Depends(get_db), exam_id):
+def get_exam(*, db: Session = Depends(get_db), exam_id, current_user: User = Depends(get_current_active_staff_user)):
     exam = crud.exam.get(db, id=exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
@@ -58,7 +58,8 @@ def get_exam(*, db: Session = Depends(get_db), exam_id):
 
 
 @router.put("/{exam_id}", response_model=schemas.Exam, tags=["Exam"])
-def update_exam(*, db: Session = Depends(get_db), exam_id, exam_in: schemas.ExamUpdate):
+def update_exam(*, db: Session = Depends(get_db), exam_id, exam_in: schemas.ExamUpdate, current_user: User = Depends(get_current_active_staff_user)):
+    print(exam_in.start_datetime)
     exam = crud.exam.get(db, id=exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
@@ -67,7 +68,38 @@ def update_exam(*, db: Session = Depends(get_db), exam_id, exam_in: schemas.Exam
     return exam
 
 
-# ---------------- ExamQuestion Routers -------------------- #
+# ---------------- Exam Lesson Routers -------------------- #
+@router.get("/{exam_id}/lessons", response_model=list[schemas.ExamLessonSimple], tags=["ExamLesson"])
+def get_exam_lessons(*, db: Session = Depends(get_db), exam_id, current_user: User = Depends(get_current_active_staff_user)):
+    exam = crud.exam.get(db, id=exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    stmt = select(ExamLesson).filter_by(exam=exam).order_by(ExamLesson.id)
+    return db.scalars(stmt).all()
+
+
+@router.put("/{exam_id}/lessons", response_model=list[schemas.ExamLessonSimple], tags=["ExamLesson"])
+def update_exam_lessons(*, db: Session = Depends(get_db), exam_id, exam_lessons_in: list[schemas.ExamLessonSimple],
+                        current_user: User = Depends(get_current_active_staff_user)):
+    exam = crud.exam.get(db, id=exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    exam_lessons_db = exam.exam_lessons
+
+    for item in exam_lessons_db:
+        item_in = [x for x in exam_lessons_in if x.id == item.id][0]
+        item.coefficient = item_in.coefficient
+        item.type = item_in.type
+        item.duration = item_in.duration
+
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+
+    return exam_lessons_db
+
+    # ---------------- ExamQuestion Routers -------------------- #
 
 
 @router.get("/{exam_id}/questions/", response_model=list[schemas.ExamQuestion], tags=["ExamQuestion"])
@@ -94,7 +126,7 @@ def update_exam_question_advance(*, db: Session = Depends(get_db), exam_question
     ).scalar()
 
     if exam_lesson is None:
-        db_obj = ExamLesson(exam_id=exam.id, lesson_id=exam_question_in.lesson_id, coefficient=0, type=enums.ExamLessonType.GENERAL, duration=0)
+        db_obj = ExamLesson(exam_id=exam.id, lesson_id=exam_question_in.lesson_id, coefficient=0, type=enums.ExamLessonType.GENERAL)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -126,7 +158,7 @@ def create_exam_question_advance(*, db: Session = Depends(get_db), exam_id, exam
     ).scalar()
 
     if exam_lesson is None:
-        db_obj = ExamLesson(exam_id=exam.id, lesson_id=exam_question_in.lesson_id, coefficient=0, type=enums.ExamLessonType.GENERAL, duration=0)
+        db_obj = ExamLesson(exam_id=exam.id, lesson_id=exam_question_in.lesson_id, coefficient=0, type=enums.ExamLessonType.GENERAL)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)

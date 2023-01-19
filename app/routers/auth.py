@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import schemas
 from app.config.base import settings
-from app.dependencies import get_db
+from app.dependencies import get_db, get_current_user
 from app.models import User
 from app.core import security
 from app.core.security import verify_password
@@ -35,8 +35,14 @@ def login_access_token(*, db: Session = Depends(get_db), form_data: OAuth2Passwo
 
     # Add secure and domain
     response.set_cookie(key="auth_access_token", value=f"Bearer {access_token}", expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60, httponly=True,
-                        secure=True, samesite='none', domain='.chbk.run')
+                        secure=True, samesite='none', domain=settings.COOKIE_DOMAIN)
     return {
         "access_token": access_token,
         "token_type": "Bearer",
     }
+
+
+@router.get("/logout")
+async def logout(response: Response, current_user: User = Depends(get_current_user)):
+    response.delete_cookie("auth_access_token")
+    return {"status": "success"}

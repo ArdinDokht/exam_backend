@@ -1,3 +1,5 @@
+import time
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -5,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
+from app import models
 from app.config.base import settings
 from app.config.database import SessionLocal
 from app.core.utils import OAuth2PasswordBearerWithCookie
@@ -21,7 +24,7 @@ def get_db():
 
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/token")
-oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/login/token")
+oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/auth/token")
 
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
@@ -42,3 +45,15 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
+
+
+def get_current_active_user(current_user: models.User = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    return current_user
+
+
+def get_current_active_staff_user(current_user: models.User = Depends(get_current_active_user)):
+    if not current_user.is_staff:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="The user doesn't have enough privileges")
+    return current_user

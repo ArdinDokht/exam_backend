@@ -17,7 +17,7 @@ class Exam(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
     type: Mapped[enums.ExamType]
-    question_paper_type: Mapped[enums.QuestionPaperType] = mapped_column(default=enums.QuestionPaperType.FULL)
+    question_paper_type: Mapped[enums.QuestionPaperType] = mapped_column(default=enums.QuestionPaperType.LESSON_SEPARATE)
     start_datetime: Mapped[datetime.datetime]
     duration: Mapped[int]
 
