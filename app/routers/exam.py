@@ -3,8 +3,9 @@ from urllib import request
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select, func, delete
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import Session, aliased
+from starlette import status
 
 from app import schemas, crud, enums
 from app.dependencies import get_db, get_current_active_staff_user
@@ -102,12 +103,25 @@ def update_exam_lessons(*, db: Session = Depends(get_db), exam_id, exam_lessons_
     # ---------------- ExamQuestion Routers -------------------- #
 
 
+# ---------------- Exam Questions Routers -------------------- #
 @router.get("/{exam_id}/questions/", response_model=list[schemas.ExamQuestion], tags=["ExamQuestion"])
-def get_exam_questions(*, db: Session = Depends(get_db), exam_id):
+def get_exam_questions(*, db: Session = Depends(get_db), exam_id, current_user: User = Depends(get_current_active_staff_user)):
     exam = crud.exam.get(db, id=exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    return db.scalars(select(ExamQuestion).join(ExamLesson).join(Exam).where(Exam.id == exam_id)).all()
+    return db.scalars(select(ExamQuestion).join(ExamLesson).join(Exam).where(Exam.id == exam_id).order_by(ExamQuestion.question_number)).all()
+
+
+@router.delete("/{exam_question_id}/", tags=["ExamQuestion"])
+def remove_exam_question(*, db: Session = Depends(get_db), exam_question_id, current_user: User = Depends(get_current_active_staff_user)):
+    try:
+        obj = db.get(ExamQuestion, exam_question_id)
+        db.delete(obj)
+        db.commit()
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This question cannot be deleted")
+
+    return obj
 
 
 @router.put("/{exam_id}/questions/{exam_question_id}/advance/", tags=["ExamQuestion"], response_model=schemas.ExamQuestion)
