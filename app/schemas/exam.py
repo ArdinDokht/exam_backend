@@ -57,7 +57,7 @@ class ExamQuestion(BaseModel):
     id: int
     exam_lesson: ExamLesson
     question_text: str
-    answer_text: str
+    answer_text: Optional[str]
     type: enums.TypeQuestion
     topic: schemas.Topic
     question_number: int

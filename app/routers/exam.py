@@ -1,7 +1,8 @@
 from datetime import datetime
 from urllib import request
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+import boto3
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy import select, func, delete
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import Session, aliased
@@ -12,6 +13,7 @@ from app.dependencies import get_db, get_current_active_staff_user
 from app.enums import ExamStatusType, ExamScoreType
 from app.models import Exam, User, Grade, Agency, ClassRoom, School, Topic
 from app.models.exam import ExamQuestion, ExamLesson, ExamUser, ExamUserQuestion, ExamStatus, ExamUserScore
+from app.utils.file_helper import allowed_file
 
 router = APIRouter()
 
@@ -124,8 +126,40 @@ def remove_exam_question(*, db: Session = Depends(get_db), exam_question_id, cur
     return obj
 
 
+@router.post("/image/upload/", tags=["ExamQuestion"])
+def upload_image(file: UploadFile, current_user: User = Depends(get_current_active_staff_user)):
+    if not allowed_file(file.filename, {'png', 'jpg', 'jpeg'}):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    # file_binary = file.read()
+    # if len(file_binary) > 10 * 1024 * 1024:  # limit file size to 10MB
+    #     raise HTTPException(status_code=400, detail="File size exceeded 10MB limit")
+
+    # mime = magic.from_buffer(file_binary, mime=True)
+    # if not mime.startswith("image"):
+    #     raise HTTPException(status_code=400, detail="Invalid file format")
+    # Save file to AWS S3 storage
+    s3 = boto3.client("s3",
+                      aws_access_key_id="kue698sasgcqqkse",
+                      aws_secret_access_key="068be239-c495-43a0-a2af-2df170a79899",
+                      endpoint_url="https://storage.iran.liara.space",
+                      )
+    s3.put_object(Bucket="exam", Key=file.filename, Body=file.file)
+    # pre_signed_url = s3.generate_presigned_url(
+    #     ClientMethod="get_object",
+    #     Params={
+    #         "Bucket": "exam",
+    #         "Key": file.filename
+    #     },
+    #     ExpiresIn=3600  # URL valid for one hour
+    # )
+    # return {"url": pre_signed_url}
+    return {"url": f"https://exam.storage.iran.liara.space/{file.filename}"}
+
+
 @router.put("/{exam_id}/questions/{exam_question_id}/advance/", tags=["ExamQuestion"], response_model=schemas.ExamQuestion)
-def update_exam_question_advance(*, db: Session = Depends(get_db), exam_question_id, exam_id, exam_question_in: schemas.ExamQuestionAdvanceUpdate):
+def update_exam_question_advance(*, db: Session = Depends(get_db), exam_question_id, exam_id, exam_question_in: schemas.ExamQuestionAdvanceUpdate,
+                                 current_user: User = Depends(get_current_active_staff_user)):
     # Todo add check exam_id in this question
     exam = crud.exam.get(db, id=exam_id)
     if not exam:
@@ -161,7 +195,8 @@ def update_exam_question_advance(*, db: Session = Depends(get_db), exam_question
 
 
 @router.post("/{exam_id}/questions/advance/", tags=["ExamQuestion"])
-def create_exam_question_advance(*, db: Session = Depends(get_db), exam_id, exam_question_in: schemas.ExamQuestionAdvanceCreate):
+def create_exam_question_advance(*, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_staff_user), exam_id,
+                                 exam_question_in: schemas.ExamQuestionAdvanceCreate):
     exam = crud.exam.get(db, id=exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
