@@ -2,10 +2,15 @@ FROM python:3.10
 
 WORKDIR /code
 
-COPY ./requirements.txt /code/requirements.txt
+#COPY ./requirements.txt /code/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+COPY Pipfile* /code/
+
+#RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+
+RUN pip install --no-cache-dir pipenv && pipenv install --system --deploy
+
 
 COPY ./app /code/app
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
