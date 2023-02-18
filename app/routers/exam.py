@@ -2,6 +2,7 @@ from datetime import datetime
 from urllib import request
 
 import boto3
+# import cairosvg
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy import select, func, delete
 from sqlalchemy.exc import NoResultFound, IntegrityError
@@ -145,6 +146,10 @@ def upload_image(file: UploadFile, current_user: User = Depends(get_current_acti
                       endpoint_url="https://storage.iran.liara.space",
                       )
     s3.put_object(Bucket="exam", Key=file.filename, Body=file.file)
+
+    # svg_code = cairosvg.svg2png(url=file.file)
+
+    # s3.put_object(Bucket="exam", Key=file.filename, Body=svg_code)
     # pre_signed_url = s3.generate_presigned_url(
     #     ClientMethod="get_object",
     #     Params={
@@ -225,6 +230,15 @@ def create_exam_question_advance(*, db: Session = Depends(get_db), current_user:
     db.commit()
     db.refresh(exam_question)
     return exam_question
+
+
+# Todo add this code affter debug => current_user: User = Depends(get_current_active_staff_user)
+@router.get("/{exam_id}/questions/print/", response_model=list[schemas.ExamQuestionPrint], tags=["ExamQuestion"])
+def get_exam_questions(*, db: Session = Depends(get_db), exam_id):
+    exam = crud.exam.get(db, id=exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    return db.scalars(select(ExamQuestion).join(ExamLesson).join(Exam).where(Exam.id == exam_id).order_by(ExamQuestion.question_number)).all()
 
 
 # ---------------- ExamUser Routers -------------------- #

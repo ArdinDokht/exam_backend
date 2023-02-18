@@ -67,6 +67,15 @@ class ExamQuestion(BaseModel):
         orm_mode = True
 
 
+class ExamQuestionPrint(BaseModel):
+    id: int
+    question_text: str
+    question_number: int
+
+    class Config:
+        orm_mode = True
+
+
 class ExamQuestionAdvanceCreate(BaseModel):
     lesson_id: int
     question_text: str
