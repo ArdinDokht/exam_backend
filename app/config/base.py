@@ -6,7 +6,8 @@ from pydantic import BaseSettings, PostgresDsn, AnyHttpUrl, validator
 class Settings(BaseSettings):
     # SQLALCHEMY_DATABASE_URL: PostgresDsn = 'postgresql://cldmp8abp000l9gmp3hbk0qkq:ulO7W5iD5FvLMJqhVKaOJrW8@192.168.110.52:9000/exam'
     # SQLALCHEMY_DATABASE_URL: PostgresDsn = 'postgresql://postgres:12345678@127.0.0.1:5432/exam'
-    SQLALCHEMY_DATABASE_URL: PostgresDsn = 'postgresql://postgres:w4KXGj3ejxbCmVhU@services.irn2.chabokan.net:54933/exam'
+    SQLALCHEMY_DATABASE_URL: PostgresDsn = 'postgresql://cleaz41op0009ahtt9zy5519q:2I9Vq8HDZyF2mGrfl8dUkSnp@192.168.233.230:9000/exam'
+    # SQLALCHEMY_DATABASE_URL: PostgresDsn = 'postgresql://postgres:w4KXGj3ejxbCmVhU@services.irn2.chabokan.net:54933/exam'
 
     COOKIE_DOMAIN: str = '.testcraft.ir'
     # COOKIE_DOMAIN: str = '127.0.0.1'
