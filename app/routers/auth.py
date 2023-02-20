@@ -44,5 +44,5 @@ def login_access_token(*, db: Session = Depends(get_db), form_data: OAuth2Passwo
 
 @router.get("/logout")
 async def logout(response: Response, current_user: User = Depends(get_current_user)):
-    response.delete_cookie("auth_access_token")
+    response.delete_cookie("auth_access_token", secure=True, samesite='none', domain=settings.COOKIE_DOMAIN)
     return {"status": "success"}
