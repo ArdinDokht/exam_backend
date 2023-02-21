@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from urllib import request
 
@@ -140,12 +141,14 @@ def upload_image(file: UploadFile, current_user: User = Depends(get_current_acti
     # if not mime.startswith("image"):
     #     raise HTTPException(status_code=400, detail="Invalid file format")
     # Save file to AWS S3 storage
+    unique_filename = str(uuid.uuid4()) + '_' + file.filename
+
     s3 = boto3.client("s3",
                       aws_access_key_id="kue698sasgcqqkse",
                       aws_secret_access_key="068be239-c495-43a0-a2af-2df170a79899",
                       endpoint_url="https://storage.iran.liara.space",
                       )
-    s3.put_object(Bucket="exam", Key=file.filename, Body=file.file)
+    s3.put_object(Bucket="exam", Key=unique_filename, Body=file.file)
 
     # svg_code = cairosvg.svg2png(url=file.file)
 
@@ -159,7 +162,7 @@ def upload_image(file: UploadFile, current_user: User = Depends(get_current_acti
     #     ExpiresIn=3600  # URL valid for one hour
     # )
     # return {"url": pre_signed_url}
-    return {"url": f"https://exam.storage.iran.liara.space/{file.filename}"}
+    return {"url": f"https://exam.storage.iran.liara.space/{unique_filename}"}
 
 
 @router.put("/{exam_id}/questions/{exam_question_id}/advance/", tags=["ExamQuestion"], response_model=schemas.ExamQuestion)
@@ -234,7 +237,7 @@ def create_exam_question_advance(*, db: Session = Depends(get_db), current_user:
 
 # Todo add this code affter debug => current_user: User = Depends(get_current_active_staff_user)
 @router.get("/{exam_id}/questions/print/", response_model=list[schemas.ExamQuestionPrint], tags=["ExamQuestion"])
-def get_exam_questions(*, db: Session = Depends(get_db), exam_id):
+def get_exam_questions(*, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_staff_user), exam_id):
     exam = crud.exam.get(db, id=exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
