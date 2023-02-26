@@ -1,12 +1,13 @@
 import datetime
 from typing import Optional
 
+from pyasn1.compat import integer
 from pydantic import BaseModel
 
 from app import enums, schemas
 from app.schemas.education_system import GradeWithParent
 from app.schemas.lesson import LessonSimple, ExamUserQuestionLesson
-from app.schemas.user import User
+from app.schemas.user import User, UserHeaderPrint
 
 
 class ExamBase(BaseModel):
@@ -71,6 +72,7 @@ class ExamQuestionPrint(BaseModel):
     id: int
     question_text: str
     question_number: int
+    exam_lesson_id: int
 
     class Config:
         orm_mode = True
@@ -114,6 +116,25 @@ class ExamUserQuestionBulkUpdate(BaseModel):
 class ExamUser(BaseModel):
     exam: Exam
     user: User
+
+    class Config:
+        orm_mode = True
+
+
+class ExamHeaderPrint(BaseModel):
+    id: int
+    grade: GradeWithParent
+    title: str
+    duration: int
+
+    class Config:
+        orm_mode = True
+
+
+class ExamUserHeaderPrint(BaseModel):
+    id: int
+    exam: ExamHeaderPrint
+    user: UserHeaderPrint
 
     class Config:
         orm_mode = True

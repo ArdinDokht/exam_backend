@@ -1,3 +1,4 @@
+from turtle import title
 from typing import Optional
 
 from pydantic import BaseModel, root_validator
@@ -39,6 +40,23 @@ class GradeWithParent(GradeBase):
 class Grade(GradeBase):
     id: int
     children: list['Grade']
+
+    class Config:
+        orm_mode = True
+
+
+class School(BaseModel):
+    id: int
+    title: str
+
+    class Config:
+        orm_mode = True
+
+
+class ClassRoom(BaseModel):
+    id: int
+    title: str
+    school: School
 
     class Config:
         orm_mode = True

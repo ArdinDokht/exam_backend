@@ -101,6 +101,7 @@ class ExamUser(Base):
     __tablename__ = 'exam_user'
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.utcnow)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("user_user.id"))
     exam_id: Mapped[int] = mapped_column(ForeignKey("exam_exam.id"))

@@ -3,6 +3,7 @@ from datetime import datetime
 from urllib import request
 
 import boto3
+import pymssql
 # import cairosvg
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy import select, func, delete
@@ -71,6 +72,95 @@ def update_exam(*, db: Session = Depends(get_db), exam_id, exam_in: schemas.Exam
 
     exam = crud.exam.update(db, db_obj=exam, obj_in=exam_in)
     return exam
+
+
+@router.get("/{exam_id}/print/header", response_model=list[schemas.ExamUserHeaderPrint], tags=["Exam"])
+def get_exam_header_print(*, db: Session = Depends(get_db), exam_id, current_user: User = Depends(get_current_active_staff_user)):
+    exam_user = db.scalars(select(ExamUser).filter_by(exam_id=exam_id).join(Exam).join(User).join(Grade).join(ClassRoom).join(School)).all()
+
+    return exam_user
+
+
+@router.get("/sync/", tags=["Exam"])
+def before_sync_exam(current_user: User = Depends(get_current_active_staff_user)):
+    conn = pymssql.connect('192.168.220.27', 'tosifi_user', 'Tosif@1401', "erp")
+    cursor = conn.cursor(as_dict=True)
+    cursor.execute(
+        f'select * from radb.Tosifi_Exams'
+    )
+
+    for row in cursor:
+        yield {
+            'id': row['examinationId'],
+            'title': f'{row["productGroup"]} پایه {row["Title"]} شماره {row["productTitle"]}'
+        }
+
+
+@router.get("/{exam_id}/sync/{remote_id}", tags=["Exam"])
+def sync_exam(*, exam_id, remote_id, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_staff_user)):
+    conn = pymssql.connect('192.168.220.27', 'tosifi_user', 'Tosif@1401', "erp")
+    cursor = conn.cursor(as_dict=True)
+    cursor.execute(
+        f'select a.Id applicantId,a.MEMBER_FIRST_NAME_VC firstName,a.MEMBER_LAST_NAME_VC lastName,a.EDUCATIONAL_SYSTEM_ID educationalId,a.Agency_Id agencyId ,a.Agency_Id,a.AGENCY_NAME_VC,a.School_Id,a.MEMBER_SCHOOL_NAME_VC,a.AGENCY_BRANCH_ID class_id,a.AGENCY_BRANCH_NAME_VC className,u.Username,u.Password '
+        f'from radb.ProductApplicantClass pac '
+        f'inner join radb.ApplicantClass ac on ac.id=pac.ApplicantClass_Id '
+        f'inner join radb.Applicant a on a.id=ac.Applicant_Id '
+        f'inner join radb.[user] u on u.id=a.Id '
+        f'where pac.Product_Id={remote_id}'
+    )
+
+    for row in cursor:
+        new_row = {
+            'user_id': row['applicantId'],
+            'first_name': row['firstName'],
+            'last_name': row['lastName'],
+            'username': row['Username'],
+            'password': row['Password'],
+            'classroom_id': row['class_id'],
+            'classroom_title': row['className'],
+            'school_id': row['School_Id'],
+            'school_title': row['MEMBER_SCHOOL_NAME_VC'],
+            'grade_id': row['educationalId'],
+            'agency_id': row['agencyId'],
+            'agency_title': row['AGENCY_NAME_VC'],
+        }
+        school = db.scalars(select(School).filter_by(token=str(new_row['school_id'])).limit(1)).first()
+        if not school:
+            school = School(title=new_row['school_title'], token=str(new_row['school_id']))
+            db.add(school)
+            db.flush()
+
+        class_room = db.scalars(select(ClassRoom).filter_by(token=str(new_row['classroom_id'])).limit(1)).first()
+        if not class_room:
+            class_room = ClassRoom(title=new_row['classroom_title'], token=str(new_row['classroom_id']), school_id=school.id)
+            db.add(class_room)
+
+        agency = db.scalars(select(Agency).filter_by(token=str(new_row['agency_id'])).limit(1)).first()
+        if not agency:
+            agency = Agency(name=new_row['agency_title'], token=str(new_row['agency_id']))
+            db.add(agency)
+
+        db_user = db.scalars(select(User).filter_by(username=new_row['username']).limit(1)).first()
+        if not db_user:
+            db_user = User(
+                first_name=new_row['first_name'],
+                last_name=new_row['last_name'],
+                username=new_row['username'],
+                password=new_row['password'],
+                token=str(new_row['user_id']),
+                grade_id=new_row['grade_id'],
+                agency_id=agency.id,
+                classroom_id=class_room.id
+            )
+            db.add(db_user)
+
+        try:
+            db.execute(select(ExamUser).filter_by(exam_id=exam_id, user=db_user)).scalar_one()
+        except NoResultFound:
+            db.add(ExamUser(exam_id=exam_id, user=db_user))
+
+    db.commit()
+    return {"message": "finished successfully"}
 
 
 # ---------------- Exam Lesson Routers -------------------- #
@@ -235,7 +325,6 @@ def create_exam_question_advance(*, db: Session = Depends(get_db), current_user:
     return exam_question
 
 
-# Todo add this code affter debug => current_user: User = Depends(get_current_active_staff_user)
 @router.get("/{exam_id}/questions/print/", response_model=list[schemas.ExamQuestionPrint], tags=["ExamQuestion"])
 def get_exam_questions(*, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_staff_user), exam_id):
     exam = crud.exam.get(db, id=exam_id)
