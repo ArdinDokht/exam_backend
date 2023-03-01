@@ -133,6 +133,7 @@ class ExamHeaderPrint(BaseModel):
 
 class ExamUserHeaderPrint(BaseModel):
     id: int
+    created_at: datetime.datetime
     exam: ExamHeaderPrint
     user: UserHeaderPrint
 

@@ -30,6 +30,7 @@ class Agency(BaseModel):
 
 class UserHeaderPrint(BaseModel):
     id: int
+    token: str
     first_name: str
     last_name: str
     username: str
