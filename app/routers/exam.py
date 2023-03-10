@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, aliased
 from starlette import status
 
 from app import schemas, crud, enums
+from app.core.services import get_images_from_s3_folder, crop_images
 from app.dependencies import get_db, get_current_active_staff_user
 from app.enums import ExamStatusType, ExamScoreType
 from app.models import Exam, User, Grade, Agency, ClassRoom, School, Topic
@@ -53,6 +54,14 @@ def create_exam(*, db: Session = Depends(get_db), exam_in: schemas.ExamCreate, c
 def get_all_exams(*, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_staff_user)):
     exams = crud.exam.get_all(db)
     return exams
+
+
+@router.post("/crop", tags=["exam"])
+async def crop_exams():
+    # Get the images.
+    images = get_images_from_s3_folder('scanned_images/')
+    await crop_images(images)
+    return "Success"
 
 
 @router.get("/{exam_id}", response_model=schemas.Exam, tags=["Exam"])
